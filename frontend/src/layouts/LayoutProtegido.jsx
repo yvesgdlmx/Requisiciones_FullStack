@@ -25,10 +25,10 @@ const LayoutProtegido = () => {
   const tieneRolSuperAdmin = auth.rol === "superadmin";
 
   const imagenSidebar = auth.imagenPerfil
-  ? (typeof auth.imagenPerfil === "string"
+    ? typeof auth.imagenPerfil === "string"
       ? `${baseUrl}/${auth.imagenPerfil.replace(/\\/g, "/")}`
-      : auth.imagenPerfil.url)
-  : null;
+      : auth.imagenPerfil.url
+    : null;
 
   return (
     <>
@@ -42,17 +42,32 @@ const LayoutProtegido = () => {
           >
             {/* Logo */}
             {expandido && (
-              <div className="flex items-center justify-center h-24 border-b border-white/20">
-                <img src="/img/logo_real.png" alt="logo" className="w-46 h-20" />
+              <div className="flex flex-col items-center justify-center py-3 border-b border-white/20">
+                <div className="">
+                  <img
+                    src="/img/logo_real.png"
+                    alt="Logo del sistema"
+                    className="w-44 h-18 object-contain drop-shadow-sm"
+                  />
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-light text-white/90 leading-tight">
+                    Sistema de Gestión de Requisiciones
+                  </p>
+                </div>
               </div>
             )}
             {/* Navegación */}
-            <nav className={expandido ? "flex-1 mt-8 px-3" : "flex-1 mt-8 px-5"}>
+            <nav
+              className={expandido ? "flex-1 mt-8 px-3" : "flex-1 mt-8 px-5"}
+            >
               <ul className="space-y-2">
                 <li>
                   <NavLink to="/requisiciones" end className={SeccionActual}>
                     <FiFileText className="text-xl" />
-                    {expandido && <span className="ml-3">Mis requisiciones</span>}
+                    {expandido && (
+                      <span className="ml-3">Mis requisiciones</span>
+                    )}
                   </NavLink>
                 </li>
                 {tieneRolAdmin && (
@@ -116,9 +131,7 @@ const LayoutProtegido = () => {
                     <div className="font-semibold text-white">
                       {auth.nombre}
                     </div>
-                    <div className="text-sm text-white/80">
-                      {auth.area}
-                    </div>
+                    <div className="text-sm text-white/80">{auth.area}</div>
                   </div>
                 </div>
                 {/* Botón para contraer el menú */}
@@ -156,7 +169,11 @@ const LayoutProtegido = () => {
             <div className="flex flex-col h-full">
               {/* Logo */}
               <div className="flex items-center justify-center h-16 border-b border-white/20">
-                <img src="/img/logo_real.png" alt="logo" className="w-32 h-10" />
+                <img
+                  src="/img/logo_real.png"
+                  alt="logo"
+                  className="w-32 h-10"
+                />
               </div>
               {/* Navegación */}
               <nav className="flex-1 mt-4 px-3">
@@ -179,7 +196,7 @@ const LayoutProtegido = () => {
                         className={SeccionActual}
                         onClick={() => setMostrarSidebarMovil(false)}
                       >
-                        <FiList className="text-xl"/>
+                        <FiList className="text-xl" />
                         <span className="ml-3">Todas las requisiciones</span>
                       </NavLink>
                     </li>
@@ -203,7 +220,7 @@ const LayoutProtegido = () => {
                         className={SeccionActual}
                         onClick={() => setMostrarSidebarMovil(false)}
                       >
-                        <FiCheckCircle className="text-xl"/>
+                        <FiCheckCircle className="text-xl" />
                         <span className="ml-3">Autorizar requisiciones</span>
                       </NavLink>
                     </li>
@@ -232,9 +249,7 @@ const LayoutProtegido = () => {
                     <div className="font-semibold text-white">
                       {auth.nombre}
                     </div>
-                    <div className="text-sm text-white/80">
-                      {auth.area}
-                    </div>
+                    <div className="text-sm text-white/80">{auth.area}</div>
                   </div>
                 </div>
                 <button

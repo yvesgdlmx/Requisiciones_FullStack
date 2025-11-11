@@ -403,12 +403,14 @@ export const actualizarRequisicionAdmin = async (req, res) => {
       requisicion.monto = monto;
     }
     if (eta !== undefined) {
-      if (eta === "" || eta === "null") {
-        requisicion.eta = null;
-      } else {
-        requisicion.eta = new Date(eta);
-      }
-    }
+  if (eta === "" || eta === "null") {
+    requisicion.eta = null;
+  } else {
+    // SOLUCIÓN: Forzar interpretación UTC para que funcione igual en local y producción
+    const fechaEta = new Date(eta + 'T12:00:00.000Z');
+    requisicion.eta = fechaEta;
+  }
+}
 
     let archivosFinales = [];
     

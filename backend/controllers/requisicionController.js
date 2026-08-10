@@ -1,4 +1,4 @@
-import { Requisicion, Usuario, Articulo, Categoria } from "../models/Index.js";
+import { Requisicion, Usuario, Articulo, Categoria, Excedente,HistorialGasto } from "../models/Index.js";
 import NotificacionService from "../services/NotificacionService.js";
 import HistorialGastoService from "../services/HistorialGastoService.js";
 import fs, { stat } from "fs";
@@ -6,6 +6,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import db from "../config/db.js";
 import cloudinary from "../config/cloudinary.js";
+import { Op } from "sequelize";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -16,6 +17,25 @@ const generarFolio = (area, consecutivo) => {
   const bloqueDerecha = consecutivo.toString().padStart(5, "0");
   return `${letraArea}${bloqueIzquierda}-${bloqueDerecha}`;
 };
+
+const addDaysUTC = (date, days) => {
+  const d = new Date(date);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d;
+};
+
+const startOfDayUTC = (date) => {
+  const d = new Date(date);
+  d.setUTCHours(0, 0, 0, 0);
+  return d;
+};
+
+const endOfDayUTC = (date) => {
+  const d = new Date(date);
+  d.setUTCHours(23, 59, 59, 999);
+  return d;
+};
+
 export const crearRequisicion = async (req, res) => {
   const t = await db.transaction();
   try {
@@ -424,7 +444,7 @@ export const actualizarRequisicionAdmin = async (req, res) => {
         return { cantidad: Number.isNaN(cant) ? null : cant, moneda: mon || null };
       };
 
-      const { moneda: monedaMonto } = parseMonto(monto);
+      const { cantidad: montoCantidad, moneda: monedaMonto } = parseMonto(monto);
 
       // Determinar categoría para validar moneda
       let catIdAValidar = null;
@@ -438,7 +458,6 @@ export const actualizarRequisicionAdmin = async (req, res) => {
             nombre,
             cantidad: 0,
             diasPeriodo: 30,
-            // CAMBIO: agregar moneda por defecto al crear categoría
             moneda: "MXN",
             fechaInicio: new Date(),
             fechaFin: null
@@ -459,6 +478,54 @@ export const actualizarRequisicionAdmin = async (req, res) => {
         }
       }
 
+      // NUEVA LÓGICA: Validar presupuesto y registrar excedentes
+      // ✅ SOLO si el status es "aprobada" o "autorizada"
+      if (montoCantidad !== null && catIdAValidar && (status === "aprobada" || status === "autorizada" )) {
+        const categoria = await Categoria.findByPk(catIdAValidar);
+        
+        if (categoria) {
+          // Obtener gasto actual de la categoría en el período actual
+          const gastoActual = await HistorialGasto.sum("montoGastado", {
+            where: {
+              categoriaId: catIdAValidar,
+              fechaGasto: {
+                [Op.gte]: categoria.fechaInicio,
+                [Op.lte]: categoria.fechaFin || new Date()
+              }
+            }
+          }) || 0;
+
+          const presupuestoDisponible = categoria.cantidad - gastoActual;
+          
+          // Si el monto excede el presupuesto disponible
+          if (montoCantidad > presupuestoDisponible) {
+            const montoExcedente = montoCantidad - presupuestoDisponible;
+
+            const diasPeriodo = Number(categoria.diasPeriodo || 30);
+
+            // USAR fechaFin de la categoría como base
+            const periodoFin = new Date(categoria.fechaFin);
+            
+            // Inicio del excedente: día siguiente a fechaFin 00:00:00
+            const excedenteInicio = startOfDayUTC(addDaysUTC(periodoFin, 1));
+            
+            // Fin del excedente: diasPeriodo después con hora 23:59:59
+            const excedenteFin = endOfDayUTC(addDaysUTC(excedenteInicio, diasPeriodo - 1));
+
+            await Excedente.create({
+              categoriaId: catIdAValidar,
+              excedente: montoExcedente,
+              moneda: categoria.moneda,
+              fecha_inicio: excedenteInicio,
+              fecha_fin: excedenteFin
+            });
+
+            console.log(`Excedente registrado: ${montoExcedente} ${categoria.moneda} en categoría ${categoria.nombre}`);
+            console.log(`Período excedente: ${excedenteInicio.toISOString()} - ${excedenteFin.toISOString()}`);
+          }
+        }
+      }
+
       requisicion.monto = monto;
     }
     
@@ -475,7 +542,6 @@ export const actualizarRequisicionAdmin = async (req, res) => {
         const nombre = String(categoriaGasto).trim().toLowerCase();
         let cat = await Categoria.findOne({ where: { nombre } });
         if (!cat) {
-          // CAMBIO: agregar moneda por defecto al crear categoría
           cat = await Categoria.create({
             nombre,
             cantidad: 0,
@@ -494,7 +560,6 @@ export const actualizarRequisicionAdmin = async (req, res) => {
       if (eta === "" || eta === "null") {
         requisicion.eta = null;
       } else {
-        // SOLUCIÓN: Forzar interpretación UTC para que funcione igual en local y producción
         const fechaEta = new Date(eta + 'T12:00:00.000Z');
         requisicion.eta = fechaEta;
       }
@@ -575,12 +640,11 @@ export const actualizarRequisicionAdmin = async (req, res) => {
       include: [
         { model: Usuario, as: "usuario", attributes: ["id", "nombre", "apellido", "email"] },
         { model: Articulo, as: "articulos" },
-        // CAMBIO: incluir moneda en la respuesta
         { model: Categoria, as: "categoria", attributes: ["id", "nombre", "cantidad", "diasPeriodo", "fechaInicio", "fechaFin", "moneda"] }
       ]
     });
 
-    // Crear o actualizar historial de gasto (el service maneja todo internamente)
+    // Crear o actualizar historial de gasto
     await HistorialGastoService.crearOActualizarHistorial(
       requisicion,
       `${usuario.nombre} ${usuario.apellido}`

@@ -6,7 +6,8 @@ import {
   obtenerCategoria,
   actualizarCategoria,
   eliminarCategoria,
-  obtenerPresupuestoDisponible // ← Importar nueva función
+  obtenerPresupuestoDisponible, // ← Importar nueva función
+  obtenerExcedentePorPeriodo
 } from "../controllers/categoriaController.js";
 
 const router = express.Router();
@@ -14,7 +15,7 @@ const router = express.Router();
 router.post("/", checkAuth, crearCategoria);
 router.get("/", checkAuth, obtenerCategorias);
 router.get("/:id", checkAuth, obtenerCategoria);
-
+router.get("/excendente/:categoriaId", checkAuth, obtenerExcedentePorPeriodo);
 router.get("/:id/presupuesto-disponible", checkAuth, obtenerPresupuestoDisponible); // ← Nueva ruta
 router.put("/:id", checkAuth, actualizarCategoria);
 

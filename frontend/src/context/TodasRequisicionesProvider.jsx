@@ -13,6 +13,7 @@ export const TodasRequisicionesProvider = ({ children }) => {
     { value: "folio", label: "Folio" },
     { value: "fecha", label: "Fecha" },
     { value: "solicitante", label: "Solicitante" },
+    { value: "comprador", label: "Comprador" },
     { value: "status", label: "Status" },
   ];
   const [opcionSeleccionada, setOpcionSeleccionada] = useState(opciones[0]);
@@ -89,11 +90,11 @@ export const TodasRequisicionesProvider = ({ children }) => {
   const handleInputChange = (e) => setBusqueda(e.target.value);
   
   const datosFiltrados = datos.filter((item) =>
-    item[opcionSeleccionada.value]
-      .toString()
-      .toLowerCase()
-      .includes(busqueda.toLowerCase())
-  );
+  (item[opcionSeleccionada.value] || "")
+    .toString()
+    .toLowerCase()
+    .includes(busqueda.toLowerCase())
+);
   
   // Agrupar por status para el resumen
   const agrupacionStatus = datosFiltrados.reduce((acc, item) => {
@@ -109,6 +110,8 @@ export const TodasRequisicionesProvider = ({ children }) => {
     { status: "aprobada", color: "bg-green-400", textColor: "text-green-800" },
     { status: "esperando autorizacion", color: "bg-yellow-200", textColor: "text-yellow-800" },
     { status: "autorizada", color: "bg-cyan-200", textColor: "text-cyan-800" },
+    { status: "proceso de pago", color: "bg-pink-200", textColor: "text-pink-800" },
+    { status: "proveedor preparando envío", color: "bg-indigo-200", textColor: "text-indigo-800" },
     { status: "liberacion aduanal", color: "bg-purple-200", textColor: "text-purple-800" },
     { status: "proceso de entrega", color: "bg-orange-200", textColor: "text-orange-800" },
     { status: "entregada parcial", color: "bg-teal-200", textColor: "text-teal-800" },

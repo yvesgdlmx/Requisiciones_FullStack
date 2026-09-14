@@ -28,8 +28,8 @@ export const MisRequisicionesProvider = ({ children }) => {
    const detallesDeStatus = [
     { status: "creada", color: "bg-gray-200", textColor: "text-gray-800" },
     { status: "rechazada", color: "bg-red-400", textColor: "text-red-800" },
-    { status: "cotizando", color: "bg-blue-200", textColor: "text-blue-800" },
     { status: "aprobada", color: "bg-green-400", textColor: "text-green-800" },
+    { status: "cotizando", color: "bg-blue-200", textColor: "text-blue-800" },
     { status: "esperando autorizacion", color: "bg-yellow-200", textColor: "text-yellow-800" },
     { status: "autorizada", color: "bg-cyan-200", textColor: "text-cyan-800" },
     { status: "proceso de pago", color: "bg-pink-200", textColor: "text-pink-800" },
@@ -88,6 +88,10 @@ export const MisRequisicionesProvider = ({ children }) => {
           archivos: Array.isArray(item.archivos) ? item.archivos : [],
           articulos: Array.isArray(item.articulos) ? item.articulos : [],
           numeroOrdenCompra: item.numeroOrdenCompra,
+          cotizacion: item.cotizacion,
+          numeroGuia: item.numeroGuia,
+          numeroOrdenVenta: item.numeroOrdenVenta,
+          factura: item.factura,
           proveedor: item.proveedor,
           tipoCompra: item.tipoCompra,
           comentario: item.comentario,
@@ -128,7 +132,7 @@ export const MisRequisicionesProvider = ({ children }) => {
     setRequisicionSeleccionada(requisicion);
     setModalDetalleActivo(true);
   };
-  
+
   const handleEliminarRequisicion = async (item) => {
     const resultado = await Swal.fire({
       title: "¿Estás seguro?",

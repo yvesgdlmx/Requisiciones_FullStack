@@ -1,10 +1,11 @@
-import Usuario from "./Usuario.js"; // Asumiendo que ya cuentas con este modelo
+import Usuario from "./Usuario.js";
 import Requisicion from "./Requisicion.js";
 import Articulo from "./Articulo.js";
 import Notificacion from "./Notificacion.js";
 import Categoria from "./Categoria.js";
 import HistorialGasto from "./HistorialGasto.js";
 import Excedente from "./Excedente.js";
+import HistorialStatusRequisicion from "./HistorialStatusRequisicion.js";
 
 // Asociación entre Requisicion y Usuario
 Requisicion.belongsTo(Usuario, { foreignKey: "solicitante", as: "usuario" });
@@ -36,4 +37,12 @@ Categoria.hasMany(HistorialGasto, { foreignKey: "categoriaId", as: "historialGas
 Categoria.hasMany(Excedente, { foreignKey: "categoriaId", as: "excedentes" });
 Excedente.belongsTo(Categoria, { foreignKey: "categoriaId", as: "categoria" });
 
-export { Usuario, Requisicion, Articulo, Notificacion, Categoria, HistorialGasto, Excedente };
+// Relacion: Requisicion esta asociado a una requisicion
+Requisicion.hasMany(HistorialStatusRequisicion, { foreignKey: "requisicionId", as: "historialStatus" })
+HistorialStatusRequisicion.belongsTo(Requisicion, { foreignKey: "requisicionId", as: "requisicion" })
+
+//Rekacion: Usuario esta asociado a un historial
+Usuario.hasMany(HistorialStatusRequisicion, { foreignKey: "usuarioId", as: "historialStatus" })
+HistorialStatusRequisicion.belongsTo(Usuario, { foreignKey: "usuarioId", as: "usuario" })
+
+export { Usuario, Requisicion, Articulo, Notificacion, Categoria, HistorialGasto, Excedente, HistorialStatusRequisicion };

@@ -14,6 +14,13 @@ import useCategorias from "../../hooks/useCategorias";
 const baseUrl = import.meta.env.VITE_BACKEND_URL || "";
 Modal.setAppElement("#root");
 
+const allowedMimeTypes = [
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "application/pdf",
+];
+
 const LoadingSpinner = () => (
   <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
 );
@@ -30,6 +37,10 @@ const ModalAdminDetalleRequisicion = ({
   const [updatedStatus, setUpdatedStatus] = useState("");
   const [comentario, setComentario] = useState("");
   const [numeroOrdenCompra, setNumeroOrdenCompra] = useState("");
+  const [cotizacion, setCotizacion] = useState("");
+  const [numeroGuia, setNumeroGuia] = useState("");
+  const [numeroOrdenVenta, setNumeroOrdenVenta] = useState("");
+  const [factura, setFactura] = useState("");
   const [proveedor, setProveedor] = useState("");
   const [tipoCompra, setTipoCompra] = useState("");
   const [categoriaId, setCategoriaId] = useState("");
@@ -69,6 +80,10 @@ const ModalAdminDetalleRequisicion = ({
       setArchivosExistentes([]);
       setComentario("");
       setNumeroOrdenCompra("");
+      setCotizacion("");
+      setNumeroGuia("");
+      setNumeroOrdenVenta("");
+      setFactura("");
       setProveedor("");
       setTipoCompra("");
       setCategoriaId("");
@@ -85,6 +100,10 @@ const ModalAdminDetalleRequisicion = ({
       setUpdatedStatus(requisicion.status);
       setComentario(requisicion.comentario || "");
       setNumeroOrdenCompra(requisicion.numeroOrdenCompra || "");
+      setCotizacion(requisicion.cotizacion || "");
+      setNumeroGuia(requisicion.numeroGuia || "");
+      setNumeroOrdenVenta(requisicion.numeroOrdenVenta || "");
+      setFactura(requisicion.factura || "");
       setProveedor(requisicion.proveedor || "");
       setTipoCompra(requisicion.tipoCompra || "");
       setCategoriaId(requisicion.categoriaId || "");
@@ -129,7 +148,7 @@ const ModalAdminDetalleRequisicion = ({
         config,
       );
       setExcedenteInfo(data.excedente);
-    } catch (error) {
+    } catch {
       setExcedenteInfo(null);
     }
   };
@@ -161,7 +180,7 @@ const ModalAdminDetalleRequisicion = ({
       } else {
         setExcedenteInfo(null);
       }
-    } catch (error) {
+    } catch {
       setPresupuestoInfo(null);
       setExcedenteInfo(null);
     } finally {
@@ -176,8 +195,21 @@ const ModalAdminDetalleRequisicion = ({
     obtenerPresupuesto(catId);
   };
 
-  const isImage = (p) => /\.(jpg|jpeg|png)$/i.test(p);
-  const isPDF = (p) => /\.pdf$/i.test(p);
+  const getArchivoPath = (archivo) =>
+    typeof archivo === "string"
+      ? archivo
+      : archivo?.url || archivo?.original_name || archivo?.name || "";
+  const isImage = (archivo) =>
+    archivo?.resource_type === "image" ||
+    archivo?.mimetype?.startsWith("image/") ||
+    archivo?.type?.startsWith("image/") ||
+    /\.(jpg|jpeg|png)($|\?)/i.test(getArchivoPath(archivo));
+  const isPDF = (archivo) =>
+    archivo?.resource_type === "raw" ||
+    archivo?.mimetype === "application/pdf" ||
+    archivo?.type === "application/pdf" ||
+    archivo?.format === "pdf" ||
+    /\.pdf($|\?)/i.test(getArchivoPath(archivo));
 
   const handleStatusChange = (e) => {
     if (userRole === "superadmin") {
@@ -198,10 +230,27 @@ const ModalAdminDetalleRequisicion = ({
 
   const handleAgregarDocumento = (e) => {
     const files = Array.from(e.target.files);
+    const invalidFile = files.find((file) => !allowedMimeTypes.includes(file.type));
+
+    if (invalidFile) {
+      Swal.fire({
+        icon: "warning",
+        title: "Archivo no permitido",
+        text: "Solo puedes subir archivos JPEG, JPG, PNG o PDF.",
+      });
+      e.target.value = "";
+      return;
+    }
+
     const total =
       nuevosDocumentos.length + files.length + archivosExistentes.length;
     if (total > 5) {
-      alert("Máximo 5 archivos permitidos.");
+      Swal.fire({
+        icon: "warning",
+        title: "Maximo 5 archivos",
+        text: "Puedes adjuntar hasta 5 documentos por requisicion.",
+      });
+      e.target.value = "";
       return;
     }
     setNuevosDocumentos((prev) => [...prev, ...files]);
@@ -247,14 +296,14 @@ const ModalAdminDetalleRequisicion = ({
             key={index}
             className="relative w-32 h-32 border rounded flex items-center justify-center bg-gray-50"
           >
-            {isImage(file.name) ? (
+            {isImage(file) ? (
               <img
                 src={fileUrl}
                 alt={file.name}
                 className="object-cover w-full h-full cursor-pointer"
                 onClick={() => window.open(fileUrl, "_blank")}
               />
-            ) : isPDF(file.name) ? (
+            ) : isPDF(file) ? (
               <div
                 className="flex flex-col items-center justify-center p-2 cursor-pointer"
                 onClick={() => window.open(fileUrl, "_blank")}
@@ -384,9 +433,21 @@ const ModalAdminDetalleRequisicion = ({
     const data = new FormData();
     data.append("status", updatedStatus);
     data.append("comentario", comentario);
-    data.append("numeroOrdenCompra", numeroOrdenCompra);
     data.append("proveedor", proveedor);
     data.append("tipoCompra", tipoCompra === "" ? null : tipoCompra);
+    if (tipoCompra === "internacional") {
+      data.append("cotizacion", cotizacion);
+      data.append("numeroGuia", numeroGuia);
+      data.append("numeroOrdenCompra", numeroOrdenCompra);
+      data.append("numeroOrdenVenta", numeroOrdenVenta);
+      data.append("factura", factura);
+    } else {
+      data.append("cotizacion", "");
+      data.append("numeroGuia", "");
+      data.append("numeroOrdenCompra", "");
+      data.append("numeroOrdenVenta", "");
+      data.append("factura", "");
+    }
     data.append("categoriaId", categoriaId === "" ? null : categoriaId);
     const montoCompleto = cantidad && moneda ? `${cantidad} ${moneda}` : "";
     data.append("monto", montoCompleto);
@@ -421,6 +482,10 @@ const ModalAdminDetalleRequisicion = ({
     setArchivosExistentes([]);
     setComentario("");
     setNumeroOrdenCompra("");
+    setCotizacion("");
+    setNumeroGuia("");
+    setNumeroOrdenVenta("");
+    setFactura("");
     setProveedor("");
     setTipoCompra("");
     setCategoriaId("");
@@ -628,6 +693,7 @@ const ModalAdminDetalleRequisicion = ({
                 Datos de la Orden de Compra
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                {tipoCompra === "internacional" && (
                 <div>
                   <label className="block text-gray-500 text-sm mb-1">
                     N° Orden de Compra
@@ -640,6 +706,7 @@ const ModalAdminDetalleRequisicion = ({
                     placeholder="No asignado"
                   />
                 </div>
+                )}
                 <div>
                   <label className="block text-gray-500 text-sm mb-1">
                     Proveedor
@@ -689,6 +756,64 @@ const ModalAdminDetalleRequisicion = ({
                   </select>
                 </div>
               </div>
+
+              {tipoCompra === "internacional" && (
+                <div className="mt-4">
+                  <h4 className="text-md font-semibold text-gray-600 mb-3">
+                    Datos Internacionales
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                      <label className="block text-gray-500 text-sm mb-1">
+                        Cotizacion
+                      </label>
+                      <input
+                        type="text"
+                        value={cotizacion}
+                        onChange={(e) => setCotizacion(e.target.value)}
+                        className="w-full border border-gray-300 rounded px-2 py-1"
+                        placeholder="No asignado"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-gray-500 text-sm mb-1">
+                        Numero de guia
+                      </label>
+                      <input
+                        type="text"
+                        value={numeroGuia}
+                        onChange={(e) => setNumeroGuia(e.target.value)}
+                        className="w-full border border-gray-300 rounded px-2 py-1"
+                        placeholder="No asignado"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-gray-500 text-sm mb-1">
+                        Numero orden venta
+                      </label>
+                      <input
+                        type="text"
+                        value={numeroOrdenVenta}
+                        onChange={(e) => setNumeroOrdenVenta(e.target.value)}
+                        className="w-full border border-gray-300 rounded px-2 py-1"
+                        placeholder="No asignado"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-gray-500 text-sm mb-1">
+                        Factura
+                      </label>
+                      <input
+                        type="text"
+                        value={factura}
+                        onChange={(e) => setFactura(e.target.value)}
+                        className="w-full border border-gray-300 rounded px-2 py-1"
+                        placeholder="No asignado"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Mostrar información del presupuesto */}
               {cargandoPresupuesto && (
@@ -963,13 +1088,13 @@ const ModalAdminDetalleRequisicion = ({
                           className="flex-1"
                           onClick={() => window.open(urlCompleta, "_blank")}
                         >
-                          {isImage(urlCompleta) ? (
+                          {isImage(archivo) ? (
                             <img
                               src={urlCompleta}
                               alt={`Documento ${index}`}
                               className="object-cover w-full h-32 pointer-events-none"
                             />
-                          ) : isPDF(urlCompleta) ? (
+                          ) : isPDF(archivo) ? (
                             <div className="w-full h-32 overflow-hidden pointer-events-none">
                               <object
                                 data={urlCompleta}
@@ -988,12 +1113,12 @@ const ModalAdminDetalleRequisicion = ({
                           )}
                         </div>
                         <div className="flex items-center justify-center p-2 border-t border-gray-200 pointer-events-none">
-                          {isImage(urlCompleta) ? (
+                          {isImage(archivo) ? (
                             <>
                               <AiFillFileImage className="text-green-500 text-xl mr-1" />
                               <span className="text-sm">Imagen</span>
                             </>
-                          ) : isPDF(urlCompleta) ? (
+                          ) : isPDF(archivo) ? (
                             <>
                               <AiOutlineFilePdf className="text-red-500 text-xl mr-1" />
                               <span className="text-sm">PDF</span>

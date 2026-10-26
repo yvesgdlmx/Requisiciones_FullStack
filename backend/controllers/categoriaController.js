@@ -375,9 +375,9 @@ export const obtenerPresupuestoDisponible = async (req, res) => {
     const requisiciones = await Requisicion.findAll({
       where: { 
         categoriaId: id, 
-        // CAMBIO: solo contar aprobadas/autorizadas
+        // Contar las requisiciones de las ramas de cotizacion y autorizacion.
         status: { [Op.in]: [
-          "aprobada",
+          "cotizando",
           "autorizada",
           "liberacion aduanal",
           "proceso de entrega",

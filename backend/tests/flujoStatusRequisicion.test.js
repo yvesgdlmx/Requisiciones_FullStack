@@ -4,6 +4,7 @@ import * as flujo from "../utils/flujoStatusRequisicion.js";
 import * as flujoUI from "../../frontend/src/helpers/flujoStatusRequisicion.js";
 
 const recorridos = [
+  ["creada", "cotizando", "esperando autorizacion", "autorizada", "proceso de pago", "proveedor preparando envío", "proceso de entrega", "concluida"],
   ["creada", "cotizando", "proveedor preparando envío", "proceso de entrega", "concluida"],
   ["creada", "cotizando", "proveedor preparando envío", "liberacion aduanal", "proceso de entrega", "entregada parcial", "concluida"],
   ["creada", "esperando autorizacion", "autorizada", "proveedor preparando envío", "proceso de entrega", "concluida"],
